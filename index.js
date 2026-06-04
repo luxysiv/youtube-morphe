@@ -1,4 +1,3 @@
-const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
@@ -24,6 +23,7 @@ const { uploadApkRelease } = require("./lib/release");
       repo: "morphe-cli",
       match: (n) => n.includes("cli") && n.endsWith(".jar"),
     });
+
     console.log("📦 CLI:", cli);
 
     // 2. Download patches
@@ -33,19 +33,19 @@ const { uploadApkRelease } = require("./lib/release");
       repo: "morphe-patches",
       match: (n) => n.endsWith(".mpp"),
     });
+
     console.log("📦 PATCHES:", patches);
 
     // 3. Extract versions
     console.log("⬇️ Extract versions (list-versions)...");
 
+    const { execSync } = require("child_process");
+
     const output = execSync(
-      `java -jar "${cli}" list-versions \
-        -f com.google.android.youtube \
-        --patches="${patches}"`,
+      `java -jar "${cli}" list-versions -f com.google.android.youtube --patches="${patches}"`,
       {
-        encoding: "utf-8",
+        encoding: "utf8",
         maxBuffer: 1024 * 1024 * 10,
-        stdio: "pipe",
       }
     );
 
@@ -56,7 +56,10 @@ const { uploadApkRelease } = require("./lib/release");
     }
 
     console.log("📋 ALL VERSIONS:");
-    versions.forEach((v) => console.log(" -", v));
+
+    versions.forEach((v) => {
+      console.log(" -", v);
+    });
 
     const selectedVersion = pickLatestVersion(versions);
 
@@ -90,32 +93,24 @@ const { uploadApkRelease } = require("./lib/release");
 
     // 5. Patch
     console.log("⬇️ PATCHING...");
-    const patchedPath = patchApk(cli, patches, apkPath);
 
-    console.log("📦 PATCHED (raw):", patchedPath);
+    const actualPatched = patchApk(
+      cli,
+      patches,
+      apkPath
+    );
 
-    const dir = process.cwd();
+    console.log("📦 PATCHED:", actualPatched);
 
-    const patchedFile = fs
-      .readdirSync(dir)
-      .filter((f) => f.endsWith("patched.apk"))
-      .map((f) => ({
-        name: f,
-        time: fs.statSync(path.join(dir, f)).mtime.getTime(),
-      }))
-      .sort((a, b) => b.time - a.time)[0]?.name;
-
-    if (!patchedFile) {
-      console.log("📂 FILES IN ROOT:");
-      fs.readdirSync(dir).forEach((f) => console.log(" -", f));
-      throw new Error("Patched APK not found (*patched.apk)");
+    if (!fs.existsSync(actualPatched)) {
+      throw new Error(
+        `Patched APK not found: ${actualPatched}`
+      );
     }
 
-    const actualPatched = path.join(dir, patchedFile);
+    // 6. Rename / Copy
+    const dir = process.cwd();
 
-    console.log("🔍 FOUND PATCHED:", actualPatched);
-
-    // 6. Rename
     const finalName = `youtube-${selectedVersion}-morphe.apk`;
     const finalPath = path.join(dir, finalName);
 
@@ -123,8 +118,9 @@ const { uploadApkRelease } = require("./lib/release");
 
     console.log("📝 FINAL:", finalPath);
 
-    // 7. Upload
+    // 7. Upload Release
     console.log("🚀 UPLOAD RELEASE...");
+
     await uploadApkRelease({
       version: selectedVersion,
       apkPath: finalPath,
@@ -138,13 +134,21 @@ const { uploadApkRelease } = require("./lib/release");
     console.log("📦 CLI:", cli);
     console.log("📦 PATCHES:", patches);
     console.log("📦 ORIGINAL:", apkPath);
+    console.log("📦 PATCHED:", actualPatched);
     console.log("📦 OUTPUT:", finalPath);
   } catch (err) {
     console.error("\n❌ ERROR:", err.message);
 
     if (err.stdout || err.stderr) {
-      console.error("STDOUT:", err.stdout?.toString());
-      console.error("STDERR:", err.stderr?.toString());
+      console.error(
+        "STDOUT:",
+        err.stdout?.toString() || ""
+      );
+
+      console.error(
+        "STDERR:",
+        err.stderr?.toString() || ""
+      );
     }
 
     process.exit(1);
