@@ -16,15 +16,15 @@ const { uploadApkRelease } = require("./lib/release");
   try {
     console.log("🚀 START\n");
 
-    // 1. Download CLI
-    console.log("🌐 FETCH: morphe-cli");
-    const cli = await downloadLatestGithubAsset({
+    // 1. Download desktop cli
+    console.log("🌐 FETCH: morphe-desktop");
+    const desktop = await downloadLatestGithubAsset({
       owner: "MorpheApp",
-      repo: "morphe-cli",
-      match: (n) => n.includes("cli") && n.endsWith(".jar"),
+      repo: "morphe-desktop",
+      match: (n) => n.includes("desktop") && n.endsWith(".jar"),
     });
 
-    console.log("📦 CLI:", cli);
+    console.log("📦 desktop:", desktop);
 
     // 2. Download patches
     console.log("🌐 FETCH: morphe-patches");
@@ -42,7 +42,7 @@ const { uploadApkRelease } = require("./lib/release");
     const { execSync } = require("child_process");
 
     const output = execSync(
-      `java -jar "${cli}" list-versions -f com.google.android.youtube --patches="${patches}"`,
+      `java -jar "${desktop}" list-versions -f com.google.android.youtube --patches="${patches}"`,
       {
         encoding: "utf8",
         maxBuffer: 1024 * 1024 * 10,
@@ -52,7 +52,7 @@ const { uploadApkRelease } = require("./lib/release");
     const versions = extractYoutubeVersions(output);
 
     if (!versions.length) {
-      throw new Error("No versions found from CLI");
+      throw new Error("No versions found from desktop");
     }
 
     console.log("📋 ALL VERSIONS:");
@@ -95,7 +95,7 @@ const { uploadApkRelease } = require("./lib/release");
     console.log("⬇️ PATCHING...");
 
     const actualPatched = patchApk(
-      cli,
+      desktop,
       patches,
       apkPath
     );
@@ -131,7 +131,7 @@ const { uploadApkRelease } = require("./lib/release");
     console.log("──────────────");
 
     console.log("➡️ VERSION:", selectedVersion);
-    console.log("📦 CLI:", cli);
+    console.log("📦 desktop-cli:", desktop);
     console.log("📦 PATCHES:", patches);
     console.log("📦 ORIGINAL:", apkPath);
     console.log("📦 PATCHED:", actualPatched);
