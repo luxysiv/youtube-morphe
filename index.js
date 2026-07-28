@@ -1,7 +1,10 @@
 const fs = require("fs");
 const path = require("path");
 
-const { downloadLatestGithubAsset } = require("./lib/github");
+const {
+  downloadLatestGithubAsset,
+  downloadLatestGithubAssetWithMeta,
+} = require("./lib/github");
 const {
   extractYoutubeVersions,
   pickLatestVersion,
@@ -11,6 +14,7 @@ const { downloadApk } = require("./lib/apkmirror");
 const { downloadFromUptodown } = require("./lib/uptodown");
 const { patchApk } = require("./lib/patcher");
 const { uploadApkRelease } = require("./lib/release");
+const { isPatchesVersionAlreadyReleased } = require("./lib/state");
 
 (async () => {
   try {
@@ -26,15 +30,34 @@ const { uploadApkRelease } = require("./lib/release");
 
     console.log("📦 desktop:", desktop);
 
-    // 2. Download patches
+    // 2. Download patches (with release metadata: tag + changelog body)
     console.log("🌐 FETCH: morphe-patches");
-    const patches = await downloadLatestGithubAsset({
+    const {
+      path: patches,
+      release: patchesRelease,
+    } = await downloadLatestGithubAssetWithMeta({
       owner: "MorpheApp",
       repo: "morphe-patches",
       match: (n) => n.endsWith(".mpp"),
     });
 
     console.log("📦 PATCHES:", patches);
+
+    const patchesTag = patchesRelease?.tag_name || null;
+    const patchesInfo = { tagName: patchesTag, body: patchesRelease?.body || "" };
+
+    console.log("🏷️ Patches version:", patchesTag || "unknown");
+
+    // 2b. Skip early if this exact patches version was already released before
+    const alreadyReleased = await isPatchesVersionAlreadyReleased(patchesTag);
+
+    if (alreadyReleased) {
+      console.log(
+        `\n⏭️ SKIP: patches ${patchesTag} đã được release trước đó (không có gì mới).`
+      );
+      console.log("──────────────");
+      return;
+    }
 
     // 3. Extract versions
     console.log("⬇️ Extract versions (list-versions)...");
@@ -124,6 +147,7 @@ const { uploadApkRelease } = require("./lib/release");
     await uploadApkRelease({
       version: selectedVersion,
       apkPath: finalPath,
+      patches: patchesInfo,
     });
 
     // 8. Done
