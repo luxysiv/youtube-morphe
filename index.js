@@ -53,7 +53,7 @@ const { isPatchesVersionAlreadyReleased } = require("./lib/state");
 
     if (alreadyReleased) {
       console.log(
-        `\n⏭️ SKIP: patches ${patchesTag} đã được release trước đó (không có gì mới).`
+        `\n⏭️ SKIP: patches ${patchesTag} patched, skip.`
       );
       console.log("──────────────");
       return;
