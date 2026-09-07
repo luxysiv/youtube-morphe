@@ -11,7 +11,6 @@ const {
 } = require("./lib/versions");
 
 const { downloadApk } = require("./lib/apkmirror");
-const { downloadFromUptodown } = require("./lib/uptodown");
 const { patchApk } = require("./lib/patcher");
 const { uploadApkRelease } = require("./lib/release");
 const { isPatchesVersionAlreadyReleased } = require("./lib/state");
@@ -93,35 +92,15 @@ const { isPatchesVersionAlreadyReleased } = require("./lib/state");
     console.log("\n➡️ TARGET:", selectedVersion);
 
     // 4. Download APK
-    let apkPath;
-
-    try {
-      console.log("🌐 SOURCE: APKMirror");
-      apkPath = await downloadApk(selectedVersion);
-    } catch (apkMirrorError) {
-      console.log("❌ APKMIRROR FAIL:", apkMirrorError.message);
-
-      console.log("🔁 FALLBACK: Uptodown");
-
-      try {
-        console.log("🌐 SOURCE: Uptodown");
-        apkPath = await downloadFromUptodown(selectedVersion);
-      } catch (uptodownError) {
-        console.log("❌ UPTODOWN FAIL:", uptodownError.message);
-        throw new Error("All sources failed");
-      }
-    }
+    console.log("🌐 SOURCE: APKMirror");
+    const apkPath = await downloadApk(selectedVersion);
 
     console.log("📦 APK:", apkPath);
 
     // 5. Patch
     console.log("⬇️ PATCHING...");
 
-    const actualPatched = await patchApk(
-      desktop,
-      patches,
-      apkPath
-    );
+    const actualPatched = await patchApk(desktop, patches, apkPath);
 
     console.log("📦 PATCHED:", actualPatched);
 
