@@ -117,7 +117,7 @@ const { isPatchesVersionAlreadyReleased } = require("./lib/state");
     // 5. Patch
     console.log("⬇️ PATCHING...");
 
-    const actualPatched = patchApk(
+    const actualPatched = await patchApk(
       desktop,
       patches,
       apkPath
