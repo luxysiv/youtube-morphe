@@ -1,0 +1,8 @@
+node_modules/
+
+# Downloaded / cached build artifacts (never commit these)
+downloads/
+*.apk
+*.jar
+*.mpp
+*.part

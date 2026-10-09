@@ -31,6 +31,14 @@ jobs:
           npm ci
           npx playwright install chromium --with-deps
 
+      - name: Restore unpatched YouTube APK cache
+        uses: actions/cache@v4
+        with:
+          path: downloads
+          key: youtube-apk-${{ github.run_id }}
+          restore-keys: |
+            youtube-apk-
+
       - name: Run script
         run: node index.js
         env:
