@@ -36,4 +36,4 @@ downloads/youtube-<version>-universal.apk
 
 ## GitHub Actions
 
-Workflow nằm ở `.github/workflows/patch.yml`. Nếu token/CLI không có quyền `workflow`, dùng bản template trong `ci/patch.yml` để thay thế.
+Workflow nằm ở `.github/workflows/patch.yml` và chạy `bash patch.sh`.
