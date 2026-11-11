@@ -9,27 +9,17 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
-
-      - name: Install dependencies
-        run: |
-          npm ci
-          npx playwright install chromium --with-deps
 
       - name: Restore unpatched YouTube APK cache
         uses: actions/cache@v4
@@ -40,7 +30,7 @@ jobs:
             youtube-apk-
 
       - name: Run script
-        run: node index.js
+        run: bash patch.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
