@@ -332,7 +332,7 @@ fetch_html() { # url outfile [referer]
 parse_apkmirror_variant() { # htmlfile
   awk -v RS='<div class="table-row' 'BEGIN { ORS = "\n" }
     NR > 1 {
-      block = $0
+      block = substr($0, 1, 3000)
       text = tolower(block)
       gsub(/<[^>]*>/, " ", text)
       if (text ~ /apk/ && text !~ /bundle/ && text ~ /universal/ && text ~ /nodpi/) {
@@ -385,7 +385,7 @@ download_apk() { # version -> in ra path
     log "⚡ Cache hit: reuse APK $version"
     log "📦 CACHED APK: $cached"
     prune_apk_cache "$cached"
-    printf '%s\n' "$cached"
+    APK_PATH="$cached"
     return 0
   fi
 
@@ -440,27 +440,34 @@ download_apk() { # version -> in ra path
   log "💾 Cached APK: $cache_path"
 
   prune_apk_cache "$cache_path"
-  printf '%s\n' "$cache_path"
+  APK_PATH="$cache_path"
 }
 
 # ================= PATCH =================
 
 patch_apk() { # desktop patches apk -> PATCHED_APK
   local desktop="$1" patches="$2" apk="$3" logfile="$TMP_DIR/patch.log" code out
+  local out_file="$TMP_DIR/patched.apk"
 
   log ""
   log "🛠️ Patching APK..."
   log ""
 
+  rm -f "$out_file"
+
   set +e
-  java -jar "$desktop" patch --patches "$patches" "$apk" 2>&1 | tee "$logfile"
+  java -jar "$desktop" patch --patches="$patches" --out="$out_file" "$apk" 2>&1 | tee "$logfile"
   code="${PIPESTATUS[0]}"
   set -e
 
   [ "$code" -eq 0 ] || die "Patch failed with exit code $code"
 
-  out="$(sed -E 's/\x1B\[[0-9;]*[A-Za-z]//g' "$logfile" | tr -d '\r' |
-    sed -n 's/.*INFO:[[:space:]]*Saved to[[:space:]]*\(.*\.apk\).*/\1/p' | tail -n 1)"
+  if [ -f "$out_file" ]; then
+    out="$out_file"
+  else
+    out="$(sed -E 's/\x1B\[[0-9;]*[A-Za-z]//g' "$logfile" | tr -d '\r' |
+      sed -n 's/.*INFO:[[:space:]]*Saved to[[:space:]]*\(.*\.apk\).*/\1/p' | tail -n 1)"
+  fi
 
   [ -n "$out" ] || die "Cannot find patched APK path in output"
   [ -f "$out" ] || die "Patched APK does not exist: $out"
@@ -543,7 +550,7 @@ upload_with_replace() { # file
   curl -fsS -X POST --retry 5 --retry-delay 2 --retry-all-errors \
     "${GH_HEADERS[@]}" \
     -H "Content-Type: application/vnd.android.package-archive" \
-    --data-binary @"$file" \
+    -T "$file" \
     "$UPLOAD_URL?name=$(urlencode_name "$name")" >/dev/null ||
     die "Upload thất bại: $name"
 }
@@ -627,7 +634,8 @@ main() {
 
   # 4. Download APK
   log "🌐 SOURCE: APKMirror"
-  apk="$(download_apk "$selected")"
+  download_apk "$selected"
+  apk="$APK_PATH"
   log "📦 APK: $apk"
 
   # 5. Patch
