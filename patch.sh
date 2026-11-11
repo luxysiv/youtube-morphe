@@ -170,7 +170,7 @@ download_asset() { # url name
   fi
   rm -f "$name" "$name.part"
 
-  curl -fL --retry 5 --retry-delay 2 --retry-all-errors \
+  curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors \
     -A "node" -H "Accept: */*" -C - -o "$name.part" "$url" ||
     die "Download failed: $url"
 
@@ -425,7 +425,7 @@ download_apk() { # version -> in ra path
   temp_path="$cache_path.part"
 
   log "⬇️ Downloading APK..."
-  if ! curl -fL --retry 5 --retry-delay 2 --retry-all-errors \
+  if ! curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors \
     -A "$UA" -e "$dl_page" -o "$temp_path" "https://www.apkmirror.com$dl_link"; then
     rm -f "$temp_path"
     die "Download APK thất bại"
